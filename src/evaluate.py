@@ -30,7 +30,7 @@ def _eval(node, patient):
     if "all" in node: return all(_eval(n, patient) for n in node["all"])
     if "any" in node: return any(_eval(n, patient) for n in node["any"])
     if node["op"] == "!=" and node["value"] == "none":
-        return patient.get("diabetes_type") not in (None, "none")
+        return patient.get(node["field"]) not in (None, "none")
     if node["field"] == "on_acei_arb" and patient.get("on_acei_arb") is None:
         patient = dict(patient, on_acei_arb=bool(patient.get("on_acei") or patient.get("on_arb")))
     return _cmp(patient.get(node["field"]), node["op"], node["value"], patient)
@@ -38,6 +38,8 @@ def _eval(node, patient):
 # ------------------------------------------------------------ derived calculators
 def diagnose(p):
     """Section 2 / Tables 2.1-2.2. Inputs: a1c, fpg, ogtt_2h, random_glucose, classic_symptoms, crisis, a1c_unreliable."""
+    if not any(p.get(key) is not None for key in ("a1c", "fpg", "fasting_glucose", "ogtt_2h", "random_glucose")):
+        return {"status": "insufficient_data", "criteria_met": [], "note": "No diagnostic glucose or A1C measurements supplied.", "caveat": ""}
     a1c = None if p.get("a1c_unreliable") else p.get("a1c")
     fpg, og, rnd = p.get("fpg", p.get("fasting_glucose")), p.get("ogtt_2h"), p.get("random_glucose")
     dm = []
@@ -133,6 +135,13 @@ CLASS_FLAGS = {"on_metformin": "METFORMIN", "on_sglt2i": "SGLT2I", "on_glp1ra": 
                "on_acei_arb": "ACEI_ARB", "on_nsmra": "NSMRA", "on_statin": "STATIN"}
 
 def evaluate(patient, kb):
+    patient = {key: value for key, value in patient.items() if value is not None}
+    if "fpg" not in patient and "fasting_glucose" in patient:
+        patient["fpg"] = patient["fasting_glucose"]
+    if "repeat_confirmed" not in patient and "hba1c_ge_6_5_repeat_confirmed" in patient:
+        patient["repeat_confirmed"] = patient["hba1c_ge_6_5_repeat_confirmed"]
+    if "on_acei_arb" not in patient and any(key in patient for key in ("on_acei", "on_arb")):
+        patient["on_acei_arb"] = bool(patient.get("on_acei") or patient.get("on_arb"))
     ins = {i["id"]: i for i in kb["instructions"]}
     fired, instr_ids = [], []
     for r in kb["rules"]:

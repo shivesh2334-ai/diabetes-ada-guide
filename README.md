@@ -55,3 +55,21 @@ decision-support output, not medical advice; clinicians must verify every recomm
 
 ## Notes
 See `NOTICE.md` for licensing and clinical-use cautions.
+
+### Web interface and deployment settings
+- Homepage: `/`, with all 129 supported clinical parameters, example input, results and print support.
+- Vercel Framework Preset: **Other**; Root Directory: repository root; Output Directory: `public`.
+- Leave Build Command and Install Command at their defaults. No Node build or API key is needed.
+- `vercel.json` includes the JSON knowledge base and `src/` in the Python function bundle.
+- The legacy ZIP is an original source snapshot. Deploy the current repository files, not that archive.
+- API inputs require `Content-Type: application/json`. Unknown fields, invalid types, non-finite numbers and invalid enum options return 400; oversized bodies return 413.
+- Missing yes/no inputs retain the original engine's false assumption; review unknown history before using outputs. The clinical content has not been independently revalidated in this deployment update.
+
+### Verification
+```bash
+python -m unittest discover -s tests -v
+python -m compileall -q api src
+node --check public/app.js
+python src/build.py
+```
+The database builder regenerates the same knowledge-base JSON. SQLite integrity and rule-to-instruction references are checked separately. The API stores no patient requests; authentication and rate limiting are not implemented.
