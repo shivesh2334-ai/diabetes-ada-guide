@@ -32,5 +32,26 @@ Each rule in `kb["rules"]` has `when` (nested `all`/`any` of `{field, op, value}
 (`contraindication`, `warning`, `preferred`, `info`), `recommend`, `avoid`, `flags`, `instructions`, and the
 ADA recommendation reference in `rec`. Patient fields are defined in `kb["patient_fields"]`.
 
+## Vercel deployment
+The `api/evaluate.py` Python function is served at `/api/evaluate`. Deploy the repository root as the Vercel project
+root; Vercel detects the function automatically. No third-party Python packages are required.
+
+Send a `POST` request with a JSON object containing a `patient` object:
+```json
+{
+  "patient": {
+    "diabetes_type": "type2",
+    "age": 62,
+    "a1c": 8.9,
+    "egfr": 42,
+    "uacr": 420,
+    "ascvd": true
+  }
+}
+```
+The endpoint returns the evaluation result as JSON and accepts request bodies up to 1 MiB. The endpoint does not
+provide authentication or store requests; do not send personally identifiable health information. This is clinical
+decision-support output, not medical advice; clinicians must verify every recommendation.
+
 ## Notes
 See `NOTICE.md` for licensing and clinical-use cautions.
